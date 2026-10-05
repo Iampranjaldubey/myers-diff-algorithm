@@ -196,6 +196,31 @@ def group_blocks(ops):
             blocks.append(("change", deletes, inserts))
     return blocks
 
+
+# ---------------------------------------------------------------
+# 5. Rendering
+# ---------------------------------------------------------------
+
+def render_lines(blocks, a_lines, b_lines, out):
+    """
+    Part A output: one 'prefix + raw line bytes + \\n' per op.
+    
+    By appending directly to a bytearray-like list and skipping Python's 
+    print() function, we avoid Windows automatically injecting `\\r` characters,
+    fulfilling the strict byte-matching rule of the assignment.
+    """
+    for block in blocks:
+        if block[0] == "equal":
+            i, _j = block[1], block[2]
+            out.append(b" " + a_lines[i] + b"\n")
+        else:
+            _, deletes, inserts = block
+            # Deletes are printed before inserts, naturally inheriting our 'change' block order
+            for i in deletes:
+                out.append(b"-" + a_lines[i] + b"\n")
+            for j in inserts:
+                out.append(b"+" + b_lines[j] + b"\n")
+
 def main():
     argv = sys.argv
     if len(argv) != 4 or argv[1] not in ("lines", "highlight"):
@@ -216,6 +241,13 @@ def main():
 
     ops = myers_diff(a_lines, b_lines)
     blocks = group_blocks(ops)
+
+    out = []
+    if mode == "lines":
+        render_lines(blocks, a_lines, b_lines, out)
+    
+    # Write exact bytes to stdout (avoids Windows text-mode \r\n corruption)
+    sys.stdout.buffer.write(b"".join(out))
 
 if __name__ == "__main__":
     main()
