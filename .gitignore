@@ -11,3 +11,20 @@ mydiff.exe
 .idea/
 *.swp
 .DS_Store
+
+# custom tests
+custom_tests/
+
+# Temporary files generated during testing
+temp_A.txt
+temp_B.txt
+temp*.txt
+
+# AI/Agent generated documentation
+tasks.md
+specs.md
+setup.md
+AGENTS.md
+
+# Scratch directory
+scratch/
