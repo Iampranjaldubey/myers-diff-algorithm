@@ -222,6 +222,35 @@ def render_lines(blocks, a_lines, b_lines, out):
                 out.append(b"+" + b_lines[j] + b"\n")
 
 
+def render_highlight(blocks, a_lines, b_lines, out):
+    """
+    Part B output: Part A's output, plus a '? old | new' range line
+    after each paired '+' line.
+    
+    Pairing is positional: 1st delete with 1st insert, 2nd with 2nd, etc; 
+    leftovers get no '?' line.
+    """
+    for block in blocks:
+        if block[0] == "equal":
+            i, _j = block[1], block[2]
+            out.append(b" " + a_lines[i] + b"\n")
+        else:
+            _, deletes, inserts = block
+            for i in deletes:
+                out.append(b"-" + a_lines[i] + b"\n")
+
+            paired = min(len(deletes), len(inserts))
+            for idx, j in enumerate(inserts):
+                out.append(b"+" + b_lines[j] + b"\n")
+                if idx < paired:
+                    i = deletes[idx]
+                    # Highlight tests guarantee valid UTF-8 on both sides.
+                    old_s = a_lines[i].decode("utf-8")
+                    new_s = b_lines[j].decode("utf-8")
+                    old_r, new_r = char_diff_ranges(old_s, new_s)
+                    out.append(f"? {old_r} | {new_r}\n".encode("utf-8"))
+
+
 # ---------------------------------------------------------------
 # 6. Character-level ranges for Part B
 # ---------------------------------------------------------------
@@ -284,6 +313,8 @@ def main():
     out = []
     if mode == "lines":
         render_lines(blocks, a_lines, b_lines, out)
+    else:
+        render_highlight(blocks, a_lines, b_lines, out)
     
     # Write exact bytes to stdout (avoids Windows text-mode \r\n corruption)
     sys.stdout.buffer.write(b"".join(out))
