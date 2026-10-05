@@ -221,6 +221,45 @@ def render_lines(blocks, a_lines, b_lines, out):
             for j in inserts:
                 out.append(b"+" + b_lines[j] + b"\n")
 
+
+# ---------------------------------------------------------------
+# 6. Character-level ranges for Part B
+# ---------------------------------------------------------------
+
+def char_diff_ranges(old_s, new_s):
+    """
+    Run Myers' algorithm at CHARACTER granularity and turn the
+    resulting delete/insert positions into the spec's range format.
+    
+    Because Python strings index natively by Unicode code points (so len("😀") == 1),
+    we can literally just pass the two strings directly back into our own myers_diff 
+    algorithm without any extra parsing or decoding.
+    """
+    ops = myers_diff(old_s, new_s)
+    old_idx = [op[1] for op in ops if op[0] == "delete"]
+    new_idx = [op[2] for op in ops if op[0] == "insert"]
+    return format_ranges(old_idx), format_ranges(new_idx)
+
+
+def format_ranges(indices):
+    """
+    Convert a list of indices like [3,4,9,10,11] into '3-5,9-12'.
+    Empty lists return '.'.
+    """
+    if not indices:
+        return "."
+    indices = sorted(indices)
+    parts = []
+    start = prev = indices[0]
+    for idx in indices[1:]:
+        if idx == prev + 1:
+            prev = idx
+        else:
+            parts.append(f"{start}-{prev + 1}")
+            start = prev = idx
+    parts.append(f"{start}-{prev + 1}")
+    return ",".join(parts)
+
 def main():
     argv = sys.argv
     if len(argv) != 4 or argv[1] not in ("lines", "highlight"):
