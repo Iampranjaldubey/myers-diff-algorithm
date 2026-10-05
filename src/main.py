@@ -158,6 +158,44 @@ def _backtrack(n, m, trace, d):
     ops.reverse()
     return ops
 
+
+# ---------------------------------------------------------------
+# 4. Grouping into equal-runs / change-blocks, with delete-first rule
+# ---------------------------------------------------------------
+
+def group_blocks(ops):
+    """
+    Collapse the raw edit script list into clustered blocks:
+       ('equal',  a_index, b_index)
+       ('change', [a_indices of deletes], [b_indices of inserts])
+
+    Assignment Rule Check: The "delete-first" rule.
+    Inside a 'change' block, we explicitly group all 'delete' operations 
+    and put them strictly BEFORE any 'insert' operations.
+    Reordering same-type ops inside a single change block does not alter 
+    what gets deleted or inserted, maintaining the minimal edit count, 
+    but perfectly complies with the PDF's strict formatting requirement.
+    """
+    blocks = []
+    i, n = 0, len(ops)
+    while i < n:
+        op = ops[i]
+        if op[0] == "equal":
+            blocks.append(("equal", op[1], op[2]))
+            i += 1
+        else:
+            # We found a change block. Gather all deletes and inserts until the next 'equal'.
+            deletes, inserts = [], []
+            while i < n and ops[i][0] != "equal":
+                if ops[i][0] == "delete":
+                    deletes.append(ops[i][1])
+                else:
+                    inserts.append(ops[i][2])
+                i += 1
+            # By packing deletes first, we structurally enforce the delete-first rule.
+            blocks.append(("change", deletes, inserts))
+    return blocks
+
 def main():
     argv = sys.argv
     if len(argv) != 4 or argv[1] not in ("lines", "highlight"):
@@ -175,6 +213,9 @@ def main():
     if b_lines is None:
         sys.stderr.write(f"error: cannot read {path_b}\n")
         sys.exit(2)
+
+    ops = myers_diff(a_lines, b_lines)
+    blocks = group_blocks(ops)
 
 if __name__ == "__main__":
     main()
